@@ -5,19 +5,19 @@ import copy
 
 ITERATION = int(3 * 10e5)
 GAMMA = 0.95
-env = gym.make('CartPole-v0')
-# env = gym.make('MountainCar-v0')
-# env = gym.make('Pendulum-v0')
-env.seed(0)
-ob_space = env.observation_space
-act_space = env.action_space
 
 
 class Policy_net:
-    def __init__(self, name: str, temp=0.1):
+    def __init__(self, name: str, env, temp=0.1):
         """
         :param name: string
+        :param env: gym env
+        :param temp: temperature of boltzmann distribution
         """
+
+        ob_space = env.observation_space
+        act_space = env.action_space
+
         with tf.variable_scope(name):
             self.obs = tf.placeholder(dtype=tf.float32, shape=[None] + list(ob_space.shape), name='obs')
 
@@ -25,8 +25,7 @@ class Policy_net:
                 layer_1 = tf.layers.dense(inputs=self.obs, units=20, activation=tf.tanh)
                 layer_2 = tf.layers.dense(inputs=layer_1, units=20, activation=tf.tanh)
                 layer_3 = tf.layers.dense(inputs=layer_2, units=act_space.n, activation=tf.tanh)
-                self.act_probs = tf.nn.softmax(tf.divide(layer_3, temp))
-                # self.act_probs = tf.layers.dense(inputs=layer_2, units=act_space.n, activation=tf.nn.softmax)
+                self.act_probs = tf.layers.dense(inputs=tf.divide(layer_3, temp), units=act_space.n, activation=tf.nn.softmax)
 
             with tf.variable_scope('value_net'):
                 layer_1 = tf.layers.dense(inputs=self.obs, units=20, activation=tf.tanh)
@@ -153,101 +152,107 @@ class PPOTrain:
         deltas = [r_t + self.gamma * v_next - v for r_t, v_next, v in zip(rewards, v_preds_next, v_preds)]
         # calculate generative advantage estimator(lambda = 1), see ppo paper eq(11)
         gaes = copy.deepcopy(deltas)
-        for t in reversed(range(run_policy_steps - 1)):  # is T-1, where T is time step which run policy
+        for t in reversed(range(len(gaes) - 1)):  # is T-1, where T is time step which run policy
             gaes[t] = gaes[t] + self.gamma * gaes[t + 1]
         return gaes
 
 
-Policy = Policy_net('policy')
-Old_Policy = Policy_net('old_policy')
-PPO = PPOTrain(Policy, Old_Policy, gamma=GAMMA)
-saver = tf.train.Saver()
+def main():
+    env = gym.make('CartPole-v0')
+    env.seed(0)
+    ob_space = env.observation_space
+    Policy = Policy_net('policy', env)
+    Old_Policy = Policy_net('old_policy', env)
+    PPO = PPOTrain(Policy, Old_Policy, gamma=GAMMA)
+    saver = tf.train.Saver()
 
-with tf.Session() as sess:
-    writer = tf.summary.FileWriter('./log/', sess.graph)
-    sess.run(tf.global_variables_initializer())
-    obs = env.reset()
-    reward = 0
-    success_num = 0
+    with tf.Session() as sess:
+        writer = tf.summary.FileWriter('./log/', sess.graph)
+        sess.run(tf.global_variables_initializer())
+        obs = env.reset()
+        reward = 0
+        success_num = 0
 
-    for iteration in range(ITERATION):  # episode
-        observations = []
-        actions = []
-        v_preds = []
-        v_preds_next = []
-        rewards = []
-        done = False
-        run_policy_steps = 0
-        while True:  # run policy RUN_POLICY_STEPS which is much less than episode length
-            run_policy_steps += 1
-            obs = np.stack([obs]).astype(dtype=np.float32)  # prepare to feed placeholder Policy.obs
-            act, v_pred = Policy.act(obs=obs, stochastic=True)
+        for iteration in range(ITERATION):  # episode
+            observations = []
+            actions = []
+            v_preds = []
+            # v_preds_next = []
+            rewards = []
+            # done = False
+            run_policy_steps = 0
+            while True:  # run policy RUN_POLICY_STEPS which is much less than episode length
+                run_policy_steps += 1
+                obs = np.stack([obs]).astype(dtype=np.float32)  # prepare to feed placeholder Policy.obs
+                act, v_pred = Policy.act(obs=obs, stochastic=True)
 
-            # print(Policy.get_action_prob(obs=obs))
+                act = np.asscalar(act)
+                v_pred = np.asscalar(v_pred)
 
-            act = np.asscalar(act)
-            v_pred = np.asscalar(v_pred)
+                # print(v_pred)
+                # print(obs[0, 0], act)
 
-            # print(v_pred)
-            # print(obs[0, 0], act)
+                observations.append(obs)
+                actions.append(act)
+                v_preds.append(v_pred)
+                rewards.append(reward)
 
-            observations.append(obs)
-            actions.append(act)
-            v_preds.append(v_pred)
-            rewards.append(reward)
+                next_obs, reward, done, info = env.step(act)
 
-            next_obs, reward, done, info = env.step(act)
+                if done:
+                    v_preds_next = v_preds[1:] + [0]  # v_preds of next states of terminate state is 0
+                    obs = env.reset()
+                    reward = -1
+                    break
+                else:
+                    obs = next_obs
 
-            if done:
-                v_preds_next = v_preds[1:] + [0]  # v_preds of next states of terminate state is 0
-                obs = env.reset()
-                reward = -1
-                break
+            writer.add_summary(tf.Summary(value=[tf.Summary.Value(tag='episode_length', simple_value=run_policy_steps)])
+                               , iteration)
+            writer.add_summary(tf.Summary(value=[tf.Summary.Value(tag='episode_reward', simple_value=sum(rewards))])
+                               , iteration)
+            if sum(rewards) >= 195:
+                success_num += 1
+                if success_num >= 100:
+                    saver.save(sess, './model/model.ckpt')
+                    print('Clear!! model saved.')
+                    break
             else:
-                obs = next_obs
+                success_num = 0
 
-        writer.add_summary(tf.Summary(value=[tf.Summary.Value(tag='episode_length', simple_value=run_policy_steps)])
-                           , iteration)
-        writer.add_summary(tf.Summary(value=[tf.Summary.Value(tag='episode_reward', simple_value=sum(rewards))])
-                           , iteration)
-        if sum(rewards) >= 195:
-            success_num += 1
-            if success_num >= 100:
-                saver.save(sess, './model/model.ckpt')
-                print('model saved. done.')
-                break
-        else:
-            success_num = 0
+            gaes = PPO.get_gaes(rewards=rewards, v_preds=v_preds, v_preds_next=v_preds_next)
 
-        gaes = PPO.get_gaes(rewards=rewards, v_preds=v_preds, v_preds_next=v_preds_next)
+            # convert list to numpy array for feeding tf.placeholder
+            observations = np.reshape(observations, newshape=[-1] + list(ob_space.shape))
+            actions = np.array(actions).astype(dtype=np.int32)
+            rewards = np.array(rewards).astype(dtype=np.float32)
+            v_preds_next = np.array(v_preds_next).astype(dtype=np.float32)
+            gaes = np.array(gaes).astype(dtype=np.float32)
+            gaes = (gaes - gaes.mean()) / gaes.std()
 
-        # convert list to numpy array for feeding tf.placeholder
-        observations = np.reshape(observations, newshape=[-1] + list(ob_space.shape))
-        actions = np.array(actions).astype(dtype=np.int32)
-        rewards = np.array(rewards).astype(dtype=np.float32)
-        v_preds_next = np.array(v_preds_next).astype(dtype=np.float32)
-        gaes = np.array(gaes).astype(dtype=np.float32)
-        gaes = (gaes - gaes.mean()) / gaes.std()
+            PPO.assign_policy_parameters()
 
-        PPO.assign_policy_parameters()
+            inp = [observations, actions, rewards, v_preds_next, gaes]
 
-        inp = [observations, actions, rewards, v_preds_next, gaes]
+            # train
+            for epoch in range(4):
+                sample_indices = np.random.randint(low=0, high=observations.shape[0], size=64)  # indices are in [low, high)
+                sampled_inp = [np.take(a=a, indices=sample_indices, axis=0) for a in inp]  # sample training data
+                PPO.train(obs=sampled_inp[0],
+                          actions=sampled_inp[1],
+                          rewards=sampled_inp[2],
+                          v_preds_next=sampled_inp[3],
+                          gaes=sampled_inp[4])
 
-        # train
-        for epoch in range(4):
-            sample_indices = np.random.randint(low=0, high=observations.shape[0], size=64)  # indices are in [low, high)
-            sampled_inp = [np.take(a=a, indices=sample_indices, axis=0) for a in inp]  # sample training data
-            PPO.train(obs=sampled_inp[0],
-                      actions=sampled_inp[1],
-                      rewards=sampled_inp[2],
-                      v_preds_next=sampled_inp[3],
-                      gaes=sampled_inp[4])
+            summary = PPO.get_summary(obs=inp[0],
+                                      actions=inp[1],
+                                      rewards=inp[2],
+                                      v_preds_next=inp[3],
+                                      gaes=inp[4])[0]
 
-        summary = PPO.get_summary(obs=inp[0],
-                                  actions=inp[1],
-                                  rewards=inp[2],
-                                  v_preds_next=inp[3],
-                                  gaes=inp[4])[0]
+            writer.add_summary(summary, iteration)
+        writer.close()
 
-        writer.add_summary(summary, iteration)
-    writer.close()
+
+if __name__ == '__main__':
+    main()
