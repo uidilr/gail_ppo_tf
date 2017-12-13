@@ -164,7 +164,7 @@ PPO = PPOTrain(Policy, Old_Policy, gamma=GAMMA)
 saver = tf.train.Saver()
 
 with tf.Session() as sess:
-    writer = tf.summary.FileWriter('/tmp/log/tf', sess.graph)
+    writer = tf.summary.FileWriter('./log/', sess.graph)
     sess.run(tf.global_variables_initializer())
     obs = env.reset()
     reward = 0
@@ -214,7 +214,7 @@ with tf.Session() as sess:
             success_num += 1
             print(success_num)
             if success_num >= 100:
-                saver.save(sess, '/tmp/model/model.ckpt')
+                saver.save(sess, './model/model.ckpt')
                 print('model saved. done.')
                 break
         else:
