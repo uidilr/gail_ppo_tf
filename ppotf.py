@@ -212,7 +212,6 @@ with tf.Session() as sess:
                            , iteration)
         if sum(rewards) >= 195:
             success_num += 1
-            print(success_num)
             if success_num >= 100:
                 saver.save(sess, './model/model.ckpt')
                 print('model saved. done.')
