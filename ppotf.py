@@ -167,7 +167,7 @@ def main():
     saver = tf.train.Saver()
 
     with tf.Session() as sess:
-        writer = tf.summary.FileWriter('./log/', sess.graph)
+        writer = tf.summary.FileWriter('./log/expert', sess.graph)
         sess.run(tf.global_variables_initializer())
         obs = env.reset()
         reward = 0
@@ -215,7 +215,7 @@ def main():
                 success_num += 1
                 if success_num >= 100:
                     saver.save(sess, './model/model.ckpt')
-                    print('Clear!! model saved.')
+                    print('Clear!! Model saved.')
                     break
             else:
                 success_num = 0
