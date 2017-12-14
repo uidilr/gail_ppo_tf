@@ -2,10 +2,27 @@ import gym
 import numpy as np
 import os
 from ppo.policy_net import Policy_net
+import tables
 import tensorflow as tf
 
-ITERATION = int(1)
+
+ITERATION = int(3)
 GAMMA = 0.95
+
+
+# noinspection PyTypeChecker
+def open_file_and_save(file_path, data):
+    """
+    :param file_path: type==string
+    :param data:
+    :return:
+    """
+    try:
+        with open(file_path, 'ab') as f_handle:
+            np.savetxt(f_handle, data, fmt='%s')
+    except FileNotFoundError:
+        with open(file_path, 'wb') as f_handle:
+            np.savetxt(f_handle, data, fmt='%s')
 
 
 def main():
@@ -30,7 +47,6 @@ def main():
                 obs = np.stack([obs]).astype(dtype=np.float32)
 
                 act, _ = Policy.act(obs=obs, stochastic=True)
-
                 act = np.asscalar(act)
 
                 observations.append(obs)
@@ -48,13 +64,13 @@ def main():
             observations = np.reshape(observations, newshape=[-1] + list(ob_space.shape))
             actions = np.array(actions).astype(dtype=np.int32)
 
-            np.savetxt('trajectory/observations.csv', observations, delimiter=',')
-            np.savetxt('trajectory/actions.csv', actions, delimiter=',')
+            open_file_and_save('trajectory/observations.csv', observations)
+            open_file_and_save('trajectory/actions.csv', actions)
 
 
 if __name__ == '__main__':
     main()
-    x = np.genfromtxt('trajectory/observations.csv', delimiter=',')
-    y = np.genfromtxt('trajectory/actions.csv', dtype=np.int32)
-    print(x)
-    print(y)
+    x = np.genfromtxt('trajectory/observations.csv')
+    y = np.genfromtxt('trajectory/actions.csv', dtype=np.int)
+    print(len(x))
+    print(len(y))
