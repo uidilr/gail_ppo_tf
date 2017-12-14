@@ -12,12 +12,9 @@ def main():
     env.seed(0)
     ob_space = env.observation_space
     Policy = Policy_net('policy', env)
-    Old_Policy = Policy_net('old_policy', env)
-    PPO = PPOTrain(Policy, Old_Policy, gamma=GAMMA)
     saver = tf.train.Saver()
 
     with tf.Session() as sess:
-        writer = tf.summary.FileWriter('./log/test', sess.graph)
         sess.run(tf.global_variables_initializer())
         saver.restore(sess, 'model/model.ckpt')
         obs = env.reset()
