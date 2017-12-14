@@ -1,8 +1,8 @@
 import gym
 import numpy as np
 import tensorflow as tf
-from policy_net import Policy_net
-from ppo import PPOTrain
+from ppo.policy_net import Policy_net
+from ppo.ppo import PPOTrain
 
 ITERATION = int(3 * 10e5)
 GAMMA = 0.95
