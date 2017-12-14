@@ -20,7 +20,7 @@ def main():
     with tf.Session() as sess:
         writer = tf.summary.FileWriter('./log/test', sess.graph)
         sess.run(tf.global_variables_initializer())
-        saver.restore(sess, 'model/model.ckpt')
+        saver.restore(sess, 'trained_model/model.ckpt')
         obs = env.reset()
         reward = 0
         success_num = 0

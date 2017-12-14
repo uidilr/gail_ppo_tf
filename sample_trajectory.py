@@ -1,9 +1,10 @@
 import gym
 import numpy as np
+import os
+from ppo.policy_net import Policy_net
 import tensorflow as tf
-from ppotf import Policy_net, PPOTrain
 
-ITERATION = int(3 * 10e5)
+ITERATION = int(1)
 GAMMA = 0.95
 
 
@@ -16,7 +17,7 @@ def main():
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
-        saver.restore(sess, 'model/model.ckpt')
+        saver.restore(sess, 'ppo/trained_model/model.ckpt')
         obs = env.reset()
 
         for iteration in range(ITERATION):  # episode
@@ -28,7 +29,7 @@ def main():
                 # prepare to feed placeholder Policy.obs
                 obs = np.stack([obs]).astype(dtype=np.float32)
 
-                act, _ = Policy.act(obs=obs, stochastic=False)
+                act, _ = Policy.act(obs=obs, stochastic=True)
 
                 act = np.asscalar(act)
 
@@ -47,6 +48,13 @@ def main():
             observations = np.reshape(observations, newshape=[-1] + list(ob_space.shape))
             actions = np.array(actions).astype(dtype=np.int32)
 
+            np.savetxt('trajectory/observations.csv', observations, delimiter=',')
+            np.savetxt('trajectory/actions.csv', actions, delimiter=',')
+
 
 if __name__ == '__main__':
     main()
+    x = np.genfromtxt('trajectory/observations.csv', delimiter=',')
+    y = np.genfromtxt('trajectory/actions.csv', dtype=np.int32)
+    print(x)
+    print(y)
