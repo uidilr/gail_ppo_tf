@@ -19,7 +19,7 @@ def main():
     saver = tf.train.Saver()
 
     with tf.Session() as sess:
-        writer = tf.summary.FileWriter('./log/train', sess.graph)
+        writer = tf.summary.FileWriter('./log/ppo/train', sess.graph)
         sess.run(tf.global_variables_initializer())
         obs = env.reset()
         reward = 0
