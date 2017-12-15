@@ -5,7 +5,7 @@ import tensorflow as tf
 from ppo.policy_net import Policy_net
 from ppo.ppo import PPOTrain
 
-ITERATION = int(3 * 10e5)
+ITERATION = int(1e5)
 GAMMA = 0.95
 
 
