@@ -73,14 +73,14 @@ def main():
             # convert list to numpy array for feeding tf.placeholder
             observations = np.reshape(observations, newshape=[-1] + list(ob_space.shape))
             actions = np.array(actions).astype(dtype=np.int32)
-            rewards = np.array(rewards).astype(dtype=np.float32)
-            v_preds_next = np.array(v_preds_next).astype(dtype=np.float32)
             gaes = np.array(gaes).astype(dtype=np.float32)
             gaes = (gaes - gaes.mean()) / gaes.std()
+            rewards = np.array(rewards).astype(dtype=np.float32)
+            v_preds_next = np.array(v_preds_next).astype(dtype=np.float32)
 
             PPO.assign_policy_parameters()
 
-            inp = [observations, actions, rewards, v_preds_next, gaes]
+            inp = [observations, actions, gaes, rewards, v_preds_next]
 
             # train
             for epoch in range(4):
@@ -88,15 +88,13 @@ def main():
                 sampled_inp = [np.take(a=a, indices=sample_indices, axis=0) for a in inp]  # sample training data
                 PPO.train(obs=sampled_inp[0],
                           actions=sampled_inp[1],
-                          rewards=sampled_inp[2],
-                          v_preds_next=sampled_inp[3],
-                          gaes=sampled_inp[4])
+                          gaes=sampled_inp[2])
 
             summary = PPO.get_summary(obs=inp[0],
                                       actions=inp[1],
-                                      rewards=inp[2],
-                                      v_preds_next=inp[3],
-                                      gaes=inp[4])[0]
+                                      gaes=inp[2],
+                                      rewards=inp[3],
+                                      v_preds_next=inp[4])
 
             writer.add_summary(summary, iteration)
         writer.close()
