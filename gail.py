@@ -77,7 +77,7 @@ def main():
     saver = tf.train.Saver()
 
     with tf.Session() as sess:
-        writer = tf.summary.FileWriter('log/train/gail', sess.graph)
+        writer = tf.summary.FileWriter('log/train/gail.py', sess.graph)
         sess.run(tf.global_variables_initializer())
         obs = env.reset()
         reward = 0  # do not use rewards to update policy
@@ -117,7 +117,7 @@ def main():
             if sum(rewards) >= 195:
                 success_num += 1
                 if success_num >= 100:
-                    saver.save(sess, 'trained_model/gail/model.ckpt')
+                    saver.save(sess, 'trained_model/gail.py/model.ckpt')
                     print('Clear!! Model saved.')
                     break
             else:
