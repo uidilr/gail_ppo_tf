@@ -3,8 +3,10 @@ import numpy as np
 import tensorflow as tf
 from ppo.policy_net import Policy_net
 
-ITERATION = int(1e3)
+ITERATION = int(1e4)
+SAVE_INTERVAL = 1e3
 MINIBATCH_SIZE = 128
+EPOCH_NUM = 10
 
 
 class BehavioralCloning:
@@ -37,7 +39,7 @@ def main():
     env = gym.make('CartPole-v0')
     Policy = Policy_net('policy', env)
     BC = BehavioralCloning(Policy)
-    saver = tf.train.Saver()
+    saver = tf.train.Saver(max_to_keep=20)
 
     observations = np.genfromtxt('trajectory/observations.csv')
     actions = np.genfromtxt('trajectory/actions.csv', dtype=np.int32)
@@ -51,7 +53,7 @@ def main():
             inp = [observations, actions]
 
             # train
-            for epoch in range(4):
+            for epoch in range(EPOCH_NUM):
                 sample_indices = np.random.randint(low=0, high=observations.shape[0], size=MINIBATCH_SIZE)  # indices are in [low, high)
                 sampled_inp = [np.take(a=a, indices=sample_indices, axis=0) for a in inp]  # sample training data
                 BC.train(obs=sampled_inp[0],
@@ -60,8 +62,8 @@ def main():
             summary = BC.get_summary(obs=inp[0],
                                      actions=inp[1])
 
-            if iteration % 50 == 0:
-                saver.save(sess, './bc_model/model.ckpt', global_step=iteration)
+            if iteration % SAVE_INTERVAL == 0:
+                saver.save(sess, './bc_model/model.ckpt', global_step=iteration, )
 
             writer.add_summary(summary, iteration)
         writer.close()
