@@ -45,7 +45,7 @@ def main():
     actions = np.genfromtxt('trajectory/actions.csv', dtype=np.int32)
 
     with tf.Session() as sess:
-        writer = tf.summary.FileWriter('./log/bc_train', sess.graph)
+        writer = tf.summary.FileWriter('./log/train/bc', sess.graph)
         sess.run(tf.global_variables_initializer())
 
         for iteration in range(ITERATION):  # episode
@@ -63,7 +63,7 @@ def main():
                                      actions=inp[1])
 
             if iteration % SAVE_INTERVAL == 0:
-                saver.save(sess, './bc_model/model.ckpt', global_step=iteration, )
+                saver.save(sess, 'trained_model/bc/model.ckpt', global_step=iteration)
 
             writer.add_summary(summary, iteration)
         writer.close()
