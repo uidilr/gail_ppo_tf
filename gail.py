@@ -13,7 +13,8 @@ class Discriminator:
     def __init__(self, env):
         """
         :param env:
-        This discriminator predicts  P(expert|s,a) = 1 - P(agent|s,a)
+        This discriminator predicts  P(expert|s,a) = 1 - P(agent|s,a).
+        Thus, outputs of this Discriminator are rewards for learning agent. Not costs.
         """
 
         with tf.variable_scope('discriminator'):
@@ -42,7 +43,7 @@ class Discriminator:
             optimizer = tf.train.AdamOptimizer()
             self.train_op = optimizer.minimize(loss)
 
-            self.rewards = tf.log(tf.clip_by_value(prob_2, 1e-10, 1))  # log(P(expert|s,a)) larger is better for policy
+            self.rewards = tf.log(tf.clip_by_value(prob_2, 1e-10, 1))  # log(P(expert|s,a)) larger is better for agent
 
     def construct_network(self, input):
         layer_1 = tf.layers.dense(inputs=input, units=20, activation=tf.tanh, name='layer1')
@@ -77,7 +78,7 @@ def main():
     saver = tf.train.Saver()
 
     with tf.Session() as sess:
-        writer = tf.summary.FileWriter('log/train/gail.py', sess.graph)
+        writer = tf.summary.FileWriter('log/train/gail', sess.graph)
         sess.run(tf.global_variables_initializer())
         obs = env.reset()
         reward = 0  # do not use rewards to update policy
@@ -117,7 +118,7 @@ def main():
             if sum(rewards) >= 195:
                 success_num += 1
                 if success_num >= 100:
-                    saver.save(sess, 'trained_model/gail.py/model.ckpt')
+                    saver.save(sess, 'trained_model/gail/model.ckpt')
                     print('Clear!! Model saved.')
                     break
             else:
@@ -126,18 +127,19 @@ def main():
             # convert list to numpy array for feeding tf.placeholder
             observations = np.reshape(observations, newshape=[-1] + list(ob_space.shape))
             actions = np.array(actions).astype(dtype=np.int32)
-            gaes = D.get_rewards(agent_s=observations, agent_a=actions)
-            gaes = np.reshape(gaes, newshape=[-1]).astype(dtype=np.float32)
-            gaes = (gaes - gaes.mean()) / gaes.std()
 
+            # train discriminator
             D.train(expert_s=expert_observations,
                     expert_a=expert_actions,
                     agent_s=observations,
                     agent_a=actions)
 
-            inp = [observations, actions, gaes, rewards]
+            # output of this discriminator is expected accumulated rewards Q(s,a) = E[Reward] and it corresponds to gae
+            gaes = D.get_rewards(agent_s=observations, agent_a=actions)
+            gaes = np.reshape(gaes, newshape=[-1]).astype(dtype=np.float32)
 
             # train policy
+            inp = [observations, actions, gaes]
             PPO.assign_policy_parameters()
             for epoch in range(4):
                 sample_indices = np.random.randint(low=0, high=observations.shape[0],
