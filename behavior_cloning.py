@@ -19,7 +19,7 @@ class BehavioralCloning:
 
         loss = tf.reduce_sum(actions_vec * tf.log(tf.clip_by_value(self.Policy.act_probs, 1e-10, 1.0)), 1)
         loss = tf.reduce_mean(loss)
-        tf.summary.scalar('loss', loss)
+        tf.summary.scalar('loss/cross_entropy', loss)
 
         optimizer = tf.train.AdamOptimizer()
         self.train_op = optimizer.minimize(loss)

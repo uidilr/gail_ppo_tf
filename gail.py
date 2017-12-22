@@ -69,7 +69,7 @@ def main():
     ob_space = env.observation_space
     Policy = Policy_net('policy', env)
     Old_Policy = Policy_net('old_policy', env)
-    PPO = PPOTrain(Policy, Old_Policy, gamma=GAMMA)
+    PPO = PPOTrain(Policy, Old_Policy, gamma=GAMMA, train_vf=False)
     D = Discriminator(env)
 
     expert_observations = np.genfromtxt('trajectory/observations.csv')

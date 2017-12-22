@@ -45,7 +45,7 @@ class PPOTrain:
         act_probs_old = act_probs_old * tf.one_hot(indices=self.actions, depth=act_probs_old.shape[1])
         act_probs_old = tf.reduce_sum(act_probs_old, axis=1)
 
-        with tf.variable_scope('loss/clip'):
+        with tf.variable_scope('loss'):
             # ratios = tf.divide(act_probs, act_probs_old)
             ratios = tf.exp(tf.log(act_probs) - tf.log(act_probs_old))
             clipped_ratios = tf.clip_by_value(ratios, clip_value_min=1 - clip_value, clip_value_max=1 + clip_value)
@@ -53,33 +53,33 @@ class PPOTrain:
             loss_clip = tf.reduce_mean(loss_clip)
             tf.summary.scalar('loss_clip', loss_clip)
 
-        # construct computation graph for loss of value function
-        with tf.variable_scope('loss/vf'):
-            v_preds = self.Policy.v_preds
-            loss_vf = tf.squared_difference(self.rewards + self.gamma * self.v_preds_next, v_preds)
-            loss_vf = tf.reduce_mean(loss_vf)
-            tf.summary.scalar('loss_vf', loss_vf)
-
-        # construct computation graph for loss of entropy bonus
-        with tf.variable_scope('loss/entropy'):
+            # construct computation graph for loss of entropy bonus
             entropy = -tf.reduce_sum(self.Policy.act_probs *
                                      tf.log(tf.clip_by_value(self.Policy.act_probs, 1e-10, 1.0)), axis=1)
             entropy = tf.reduce_mean(entropy, axis=0)  # mean of entropy of pi(obs)
             tf.summary.scalar('entropy', entropy)
 
-        with tf.variable_scope('loss'):
+            # construct computation graph for loss of value function
             if self.train_vf:
+                v_preds = self.Policy.v_preds
+                loss_vf = tf.squared_difference(self.rewards + self.gamma * self.v_preds_next, v_preds)
+                loss_vf = tf.reduce_mean(loss_vf)
+                tf.summary.scalar('loss_vf', loss_vf)
+
+                # construct computation graph for loss
                 loss = loss_clip - c_1 * loss_vf + c_2 * entropy
             else:
                 loss = loss_clip + c_2 * entropy
             loss = -loss  # minimize -loss == maximize loss
-            tf.summary.scalar('loss', loss)
+            tf.summary.scalar('loss_total', loss)
 
         self.merged = tf.summary.merge_all()
         optimizer = tf.train.AdamOptimizer(learning_rate=1e-4, epsilon=1e-5)
         self.train_op = optimizer.minimize(loss, var_list=pi_trainable)
 
-    def train(self, obs, actions, gaes, rewards=[None], v_preds_next=[None]):
+    def train(self, obs, actions, gaes, rewards=None, v_preds_next=[None]):
+        if rewards is None:
+            rewards = [None]
         tf.get_default_session().run(self.train_op, feed_dict={self.Policy.obs: obs,
                                                                self.Old_Policy.obs: obs,
                                                                self.actions: actions,
