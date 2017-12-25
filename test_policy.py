@@ -2,14 +2,15 @@ import gym
 import numpy as np
 import tensorflow as tf
 import argparse
-from ppo.policy_net import Policy_net
+from network_models.policy_net import Policy_net
 
 
 def argparser():
-    parser = argparse.ArgumentParser('GAIL in Tensorflow')
-    parser.add_argument('--model', help='filename of model to test', default='trained_model/bc/model.ckpt-9000')
-    parser.add_argument('--logdir', help='log directory', default='log/test/bc')
-
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--modeldir', help='directory of model', default='trained_model')
+    parser.add_argument('--alg', help='algorithm used to train model', default='gail')
+    parser.add_argument('--model', help='filename of model to test', default='model.ckpt')
+    parser.add_argument('--logdir', help='log directory', default='log/test')
     parser.add_argument('--iteration', default=int(1e3))
 
     return parser.parse_args()
@@ -22,9 +23,9 @@ def main(args):
     saver = tf.train.Saver()
 
     with tf.Session() as sess:
-        writer = tf.summary.FileWriter(args.logdir, sess.graph)
+        writer = tf.summary.FileWriter(args.logdir+'/'+args.alg, sess.graph)
         sess.run(tf.global_variables_initializer())
-        saver.restore(sess, args.model)
+        saver.restore(sess, args.modeldir+'/'+args.alg+'/'+args.model)
         obs = env.reset()
         reward = 0
         success_num = 0
@@ -49,8 +50,6 @@ def main(args):
                     break
                 else:
                     obs = next_obs
-            print(iteration)
-            print(run_policy_steps)
 
             writer.add_summary(tf.Summary(value=[tf.Summary.Value(tag='episode_length', simple_value=run_policy_steps)])
                                , iteration)

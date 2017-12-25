@@ -1,13 +1,8 @@
+import argparse
 import gym
 import numpy as np
-import os
-from ppo.policy_net import Policy_net
-import tables
+from network_models.policy_net import Policy_net
 import tensorflow as tf
-
-
-ITERATION = int(3)
-GAMMA = 0.95
 
 
 # noinspection PyTypeChecker
@@ -25,7 +20,15 @@ def open_file_and_save(file_path, data):
             np.savetxt(f_handle, data, fmt='%s')
 
 
-def main():
+def argparser():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--model', help='filename of model to test', default='trained_model/ppo/model.ckpt')
+    parser.add_argument('--iteration', default=10, type=int)
+
+    return parser.parse_args()
+
+
+def main(args):
     env = gym.make('CartPole-v0')
     env.seed(0)
     ob_space = env.observation_space
@@ -34,10 +37,10 @@ def main():
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
-        saver.restore(sess, 'ppo/trained_model/model.ckpt')
+        saver.restore(sess, args.model)
         obs = env.reset()
 
-        for iteration in range(ITERATION):  # episode
+        for iteration in range(args.iteration):  # episode
             observations = []
             actions = []
             run_steps = 0
@@ -69,8 +72,5 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
-    x = np.genfromtxt('trajectory/observations.csv')
-    y = np.genfromtxt('trajectory/actions.csv', dtype=np.int)
-    print(len(x))
-    print(len(y))
+    args = argparser()
+    main(args)
