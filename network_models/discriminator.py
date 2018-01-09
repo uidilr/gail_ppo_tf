@@ -5,8 +5,8 @@ class Discriminator:
     def __init__(self, env):
         """
         :param env:
-        This discriminator predicts  P(expert|s,a) = 1 - P(agent|s,a).
-        Thus, outputs of this Discriminator are rewards for learning agent. Not costs.
+        Output of this Discriminator is reward for learning agent. Not the cost.
+        Because discriminator predicts  P(expert|s,a) = 1 - P(agent|s,a).
         """
 
         with tf.variable_scope('discriminator'):
