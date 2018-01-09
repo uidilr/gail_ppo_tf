@@ -9,7 +9,7 @@ def argparser():
     parser = argparse.ArgumentParser()
     parser.add_argument('--modeldir', help='directory of model', default='trained_model')
     parser.add_argument('--alg', help='algorithm used to train model', default='gail')
-    parser.add_argument('--model', help='filename of model to test', default='model.ckpt')
+    parser.add_argument('--model', help='number of model to test. model.ckpt-number', default='')
     parser.add_argument('--logdir', help='log directory', default='log/test')
     parser.add_argument('--iteration', default=int(1e3))
 
@@ -25,7 +25,10 @@ def main(args):
     with tf.Session() as sess:
         writer = tf.summary.FileWriter(args.logdir+'/'+args.alg, sess.graph)
         sess.run(tf.global_variables_initializer())
-        saver.restore(sess, args.modeldir+'/'+args.alg+'/'+args.model)
+        if args.model == '':
+            saver.restore(sess, args.modeldir+'/'+args.alg+'/'+'model.ckpt')
+        else:
+            saver.restore(sess, args.modeldir+'/'+args.alg+'/'+'model.ckpt-'+args.model)
         obs = env.reset()
         reward = 0
         success_num = 0
