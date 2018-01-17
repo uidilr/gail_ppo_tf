@@ -32,8 +32,8 @@ python3 test_policy.py
 Default policy is trained with gail  
 --alg=bc or ppo allows you to change test policy  
 
-If you want test bc policy, specify number of model in the directory trained_models/bc 
-For example  
+If you want test bc policy, specify the _number_ of model.ckpt-_number_ in the directory trained_models/bc 
+Example  
 python3 test_policy.py --alg=bc --model=1000
 
 **Tensorboard**  
