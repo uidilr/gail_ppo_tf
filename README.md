@@ -2,9 +2,9 @@
 Implementation of Generative Adversarial Imitation Learning(GAIL) using tensorflow  
 
 ## Dependencies
-python==3.5  
+python>=3.5  
 tensorflow>=1.4   
-gym==0.9.3  
+gym>=0.9.3  
 
 ## Gym environment
 
