@@ -10,7 +10,6 @@ def open_file_and_save(file_path, data):
     """
     :param file_path: type==string
     :param data:
-    :return:
     """
     try:
         with open(file_path, 'ab') as f_handle:
@@ -22,7 +21,7 @@ def open_file_and_save(file_path, data):
 
 def argparser():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', help='filename of model to test', default='trained_model/ppo/model.ckpt')
+    parser.add_argument('--model', help='filename of model to test', default='trained_models/ppo/model.ckpt')
     parser.add_argument('--iteration', default=10, type=int)
 
     return parser.parse_args()

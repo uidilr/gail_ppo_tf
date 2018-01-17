@@ -10,7 +10,7 @@ from algo.ppo import PPOTrain
 def argparser():
     parser = argparse.ArgumentParser()
     parser.add_argument('--logdir', help='log directory', default='log/train/ppo')
-    parser.add_argument('--savedir', help='save directory', default='trained_model/ppo')
+    parser.add_argument('--savedir', help='save directory', default='trained_models/ppo')
     parser.add_argument('--gamma', default=0.95, type=float)
     parser.add_argument('--iteration', default=int(1e4), type=int)
     return parser.parse_args()
@@ -90,15 +90,15 @@ def main(args):
             inp = [observations, actions, gaes, rewards, v_preds_next]
 
             # train
-            for epoch in range(4):
+            for epoch in range(6):
                 # sample indices from [low, high)
-                sample_indices = np.random.randint(low=0, high=observations.shape[0], size=64)
+                sample_indices = np.random.randint(low=0, high=observations.shape[0], size=32)
                 sampled_inp = [np.take(a=a, indices=sample_indices, axis=0) for a in inp]  # sample training data
                 PPO.train(obs=sampled_inp[0],
                           actions=sampled_inp[1],
                           gaes=sampled_inp[2],
-                          rewards=inp[3],
-                          v_preds_next=inp[4])
+                          rewards=sampled_inp[3],
+                          v_preds_next=sampled_inp[4])
 
             summary = PPO.get_summary(obs=inp[0],
                                       actions=inp[1],

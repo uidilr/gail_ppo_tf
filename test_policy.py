@@ -7,8 +7,8 @@ from network_models.policy_net import Policy_net
 
 def argparser():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--modeldir', help='directory of model', default='trained_model')
-    parser.add_argument('--alg', help='algorithm used to train model', default='gail')
+    parser.add_argument('--modeldir', help='directory of model', default='trained_models')
+    parser.add_argument('--alg', help='chose algorithm one of gail, ppo, bc', default='gail')
     parser.add_argument('--model', help='number of model to test. model.ckpt-number', default='')
     parser.add_argument('--logdir', help='log directory', default='log/test')
     parser.add_argument('--iteration', default=int(1e3))

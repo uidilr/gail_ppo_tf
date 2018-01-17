@@ -8,7 +8,7 @@ from algo.behavior_clone import BehavioralCloning
 
 def argparser():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--savedir', help='name of directory to save model', default='trained_model/bc')
+    parser.add_argument('--savedir', help='name of directory to save model', default='trained_models/bc')
     parser.add_argument('--max_to_keep', help='number of models to save', default=10, type=int)
     parser.add_argument('--logdir', help='log directory', default='log/train/bc')
     parser.add_argument('--iteration', default=int(1e3), type=int)
@@ -31,9 +31,9 @@ def main(args):
         writer = tf.summary.FileWriter(args.logdir, sess.graph)
         sess.run(tf.global_variables_initializer())
 
-        for iteration in range(args.iteration):  # episode
+        inp = [observations, actions]
 
-            inp = [observations, actions]
+        for iteration in range(args.iteration):  # episode
 
             # train
             for epoch in range(args.epoch_num):

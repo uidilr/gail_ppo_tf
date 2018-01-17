@@ -10,20 +10,14 @@ from algo.ppo import PPOTrain
 
 def argparser():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--pretrained', help='True if use pre-trained model ', default=False, type=bool)
-    parser.add_argument('--model', help='filename of pre-trained model', default='trained_model/bc/model.ckpt-1000')
     parser.add_argument('--logdir', help='log directory', default='log/train/gail')
-    parser.add_argument('--savedir', help='save directory', default='trained_model/gail')
+    parser.add_argument('--savedir', help='save directory', default='trained_models/gail')
     parser.add_argument('--gamma', default=0.95)
     parser.add_argument('--iteration', default=int(1e4))
     return parser.parse_args()
 
 
 def main(args):
-    global saver
-    if args.pretrained:
-        args.logdir += '_pre_trained'
-        args.savedir += '_pre_trained'
     env = gym.make('CartPole-v0')
     env.seed(0)
     ob_space = env.observation_space
@@ -35,17 +29,12 @@ def main(args):
     expert_observations = np.genfromtxt('trajectory/observations.csv')
     expert_actions = np.genfromtxt('trajectory/actions.csv', dtype=np.int32)
 
-    if args.pretrained:
-        saver = tf.train.Saver(var_list=PPO.Policy.get_trainable_variables())
-    else:
-        saver = tf.train.Saver()
+    saver = tf.train.Saver()
 
     with tf.Session() as sess:
         writer = tf.summary.FileWriter(args.logdir, sess.graph)
         sess.run(tf.global_variables_initializer())
-        if args.pretrained:
-            saver.restore(sess, args.model)
-            print('restored')
+
         obs = env.reset()
         reward = 0  # do NOT use rewards to update policy
         success_num = 0
@@ -56,7 +45,7 @@ def main(args):
             rewards = []
             v_preds = []
             run_policy_steps = 0
-            while True:  # run policy RUN_POLICY_STEPS which is much less than episode length
+            while True:
                 run_policy_steps += 1
                 obs = np.stack([obs]).astype(dtype=np.float32)  # prepare to feed placeholder Policy.obs
 
@@ -88,7 +77,7 @@ def main(args):
             if sum(rewards) >= 195:
                 success_num += 1
                 if success_num >= 100:
-                    saver.save(sess, args.savedir+'/model.ckpt')
+                    saver.save(sess, args.savedir + '/model.ckpt')
                     print('Clear!! Model saved.')
                     break
             else:
@@ -99,12 +88,13 @@ def main(args):
             actions = np.array(actions).astype(dtype=np.int32)
 
             # train discriminator
-            D.train(expert_s=expert_observations,
-                    expert_a=expert_actions,
-                    agent_s=observations,
-                    agent_a=actions)
+            for i in range(2):
+                D.train(expert_s=expert_observations,
+                        expert_a=expert_actions,
+                        agent_s=observations,
+                        agent_a=actions)
 
-            # output of this discriminator is expected accumulated rewards Q(s,a) = E[R] and it corresponds to gaes
+            # output of this discriminator is reward
             d_rewards = D.get_rewards(agent_s=observations, agent_a=actions)
             d_rewards = np.reshape(d_rewards, newshape=[-1]).astype(dtype=np.float32)
 
@@ -116,24 +106,21 @@ def main(args):
             # train policy
             inp = [observations, actions, gaes, d_rewards, v_preds_next]
             PPO.assign_policy_parameters()
-            for epoch in range(4):
+            for epoch in range(6):
                 sample_indices = np.random.randint(low=0, high=observations.shape[0],
-                                                   size=64)  # indices are in [low, high)
+                                                   size=32)  # indices are in [low, high)
                 sampled_inp = [np.take(a=a, indices=sample_indices, axis=0) for a in inp]  # sample training data
                 PPO.train(obs=sampled_inp[0],
                           actions=sampled_inp[1],
                           gaes=sampled_inp[2],
-                          rewards=inp[3],
-                          v_preds_next=inp[4])
+                          rewards=sampled_inp[3],
+                          v_preds_next=sampled_inp[4])
 
             summary = PPO.get_summary(obs=inp[0],
                                       actions=inp[1],
                                       gaes=inp[2],
                                       rewards=inp[3],
                                       v_preds_next=inp[4])
-
-            # print(sess.run(PPO.Policy.get_trainable_variables()[0])[0, 0])
-            # print(sess.run(Old_Policy.get_trainable_variables()[0])[0, 0])
 
             writer.add_summary(summary, iteration)
         writer.close()
