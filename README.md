@@ -27,7 +27,14 @@ python3 run_gail.py
 python3 run_behavior_clone.py 
 
 **Test trained policy**  
-python3 test_policy.py
+python3 test_policy.py  
+
+Default policy is trained with gail  
+--alg=bc or ppo allows you to change test policy  
+
+If you want test bc policy, specify number of model in the directory trained_models/bc 
+For example  
+python3 test_policy.py --alg=bc --model=1000
 
 **Tensorboard**  
 tensorboard --logdir log
