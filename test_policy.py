@@ -12,7 +12,7 @@ def argparser():
     parser.add_argument('--model', help='number of model to test. model.ckpt-number', default='')
     parser.add_argument('--logdir', help='log directory', default='log/test')
     parser.add_argument('--iteration', default=int(1e3))
-
+    parser.add_argument('--stochastic', default=True)
     return parser.parse_args()
 
 
@@ -39,7 +39,7 @@ def main(args):
             while True:  # run policy RUN_POLICY_STEPS which is much less than episode length
                 run_policy_steps += 1
                 obs = np.stack([obs]).astype(dtype=np.float32)  # prepare to feed placeholder Policy.obs
-                act, _ = Policy.act(obs=obs, stochastic=False)
+                act, _ = Policy.act(obs=obs, stochastic=args.stochastic)
 
                 act = np.asscalar(act)
 
