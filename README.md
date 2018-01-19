@@ -38,3 +38,6 @@ python3 test_policy.py --alg=bc --model=1000
 
 **Tensorboard**  
 tensorboard --logdir log
+
+## LICENSE
+MIT LICENSE
