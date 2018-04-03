@@ -46,5 +46,12 @@ python3 test_policy.py --alg=bc --model=1000
 ```
 tensorboard --logdir=log
 ```
+
+## Results
+
+| ![](./images/graph.png) | ![](./images/legend.png) |  
+| :---: | :---: |  
+| Fig.1 Training results | legend |  
+
 ## LICENSE
 MIT LICENSE
