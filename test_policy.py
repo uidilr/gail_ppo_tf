@@ -12,7 +12,7 @@ def argparser():
     parser.add_argument('--model', help='number of model to test. model.ckpt-number', default='')
     parser.add_argument('--logdir', help='log directory', default='log/test')
     parser.add_argument('--iteration', default=int(1e3))
-    parser.add_argument('--stochastic', default=True)
+    parser.add_argument('--stochastic', action='store_false')
     return parser.parse_args()
 
 
