@@ -29,14 +29,13 @@ def main(args):
         writer = tf.summary.FileWriter(args.logdir, sess.graph)
         sess.run(tf.global_variables_initializer())
         obs = env.reset()
-        reward = 0
         success_num = 0
 
         for iteration in range(args.iteration):
             observations = []
             actions = []
-            v_preds = []
             rewards = []
+            v_preds = []
             episode_length = 0
             while True:  # run policy RUN_POLICY_STEPS which is much less than episode length
                 episode_length += 1
@@ -46,17 +45,18 @@ def main(args):
                 act = np.asscalar(act)
                 v_pred = np.asscalar(v_pred)
 
-                observations.append(obs)
-                actions.append(act)
-                v_preds.append(v_pred)
-                rewards.append(reward)
-
                 next_obs, reward, done, info = env.step(act)
 
+                observations.append(obs)
+                actions.append(act)
+                rewards.append(reward)
+                v_preds.append(v_pred)
+
                 if done:
-                    v_preds_next = v_preds[1:] + [0]  # next state of terminate state has 0 state value
+                    next_obs = np.stack([next_obs]).astype(dtype=np.float32)  # prepare to feed placeholder Policy.obs
+                    _, v_pred = Policy.act(obs=next_obs, stochastic=True)
+                    v_preds_next = v_preds[1:] + [np.asscalar(v_pred)]
                     obs = env.reset()
-                    reward = -1
                     break
                 else:
                     obs = next_obs
@@ -78,7 +78,7 @@ def main(args):
             gaes = PPO.get_gaes(rewards=rewards, v_preds=v_preds, v_preds_next=v_preds_next)
 
             # convert list to numpy array for feeding tf.placeholder
-            observations = np.reshape(observations, newshape=[-1] + list(ob_space.shape))
+            observations = np.reshape(observations, newshape=(-1,) + ob_space.shape)
             actions = np.array(actions).astype(dtype=np.int32)
             gaes = np.array(gaes).astype(dtype=np.float32)
             gaes = (gaes - gaes.mean()) / gaes.std()

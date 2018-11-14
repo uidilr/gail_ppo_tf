@@ -36,35 +36,34 @@ def main(args):
         sess.run(tf.global_variables_initializer())
 
         obs = env.reset()
-        reward = 0  # do NOT use rewards to update policy
         success_num = 0
 
         for iteration in range(args.iteration):
             observations = []
             actions = []
+            # do NOT use rewards to update policy
             rewards = []
             v_preds = []
             run_policy_steps = 0
             while True:
                 run_policy_steps += 1
                 obs = np.stack([obs]).astype(dtype=np.float32)  # prepare to feed placeholder Policy.obs
-
                 act, v_pred = Policy.act(obs=obs, stochastic=True)
 
                 act = np.asscalar(act)
                 v_pred = np.asscalar(v_pred)
+                next_obs, reward, done, info = env.step(act)
 
                 observations.append(obs)
                 actions.append(act)
                 rewards.append(reward)
                 v_preds.append(v_pred)
 
-                next_obs, reward, done, info = env.step(act)
-
                 if done:
-                    v_preds_next = v_preds[1:] + [0]  # next state of terminate state has 0 state value
+                    next_obs = np.stack([next_obs]).astype(dtype=np.float32)  # prepare to feed placeholder Policy.obs
+                    _, v_pred = Policy.act(obs=next_obs, stochastic=True)
+                    v_preds_next = v_preds[1:] + [np.asscalar(v_pred)]
                     obs = env.reset()
-                    reward = -1
                     break
                 else:
                     obs = next_obs
